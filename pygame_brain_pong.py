@@ -247,7 +247,7 @@ def draw_game_over_screen():
     winner_text = font.render(f"{winner} Wins!", True, WHITE)
     restart_text = font.render("Press Space to Restart", True, WHITE)
     menu_text = font.render("Press M for Menu", True, WHITE)
-    window.blit(winner_text, (WINDOW_WIDTH // 2 - winner_text.get_width() // 2, WINDOW_HEIGHT // 2))
+    window.blit(winner_text, (WINDOW_WIDTH // 2 - winner_text.get_width() // 2, WINDOW_HEIGHT // 3))
     window.blit(restart_text, (WINDOW_WIDTH // 2 - restart_text.get_width() // 2, WINDOW_HEIGHT // 2 + 50))
     window.blit(menu_text, (WINDOW_WIDTH // 2 - menu_text.get_width() // 2, WINDOW_HEIGHT // 2 + 100))
 
