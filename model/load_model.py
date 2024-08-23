@@ -1,4 +1,4 @@
-from BCIPong.model.CapsNet import EEGCapsNet
+from model.CapsNet import EEGCapsNet
 import torch
 
 class LoadModel:

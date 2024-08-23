@@ -1,8 +1,8 @@
 import brainflow as bf
 import numpy as np
 import time
-from BCIPong.preprocessing.preprocess import PreProcess
-from BCIPong.model.load_model import LoadModel
+from preprocessing.preprocess import PreProcess
+from model.load_model import LoadModel
 import torch
 
 class Stream:
@@ -14,7 +14,7 @@ class Stream:
         self.board = bf.BoardShim(board_id, self.params)
         self.channels = self.board.get_eeg_channels(board_id)
         self.board.prepare_session()
-        self.buffer = np.zeros((self.channels.size, 192))
+        self.buffer = np.zeros((len(self.channels), 192))
         self.stop = False
         self.preprocess = PreProcess(125, 4, 40, 2)
         self.model = LoadModel('/home/nathan/Desktop/BCIMOUSE/capsnet_15.pth')._get()
@@ -33,17 +33,6 @@ class Stream:
                 out = self.model(data)
                 end = time.time()
                 print(f"Time taken: {end - start}")
-
-
-
-
-if __name__ == '__main__':
-    board_id = bf.BoardIDs.CYTON_DAISY_BOARD.value
-    serial_port = 'COM3'
-    stream = Stream(board_id, serial_port)
-
-
-
             
 
 
