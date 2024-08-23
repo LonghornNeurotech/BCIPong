@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from BCIPong.model.utils import Routing, CapsMask, CapsLen, ReconstructionNet
+from model.utils import Routing, CapsMask, CapsLen, ReconstructionNet
 
 
 class EEGCapsNet(nn.Module):
