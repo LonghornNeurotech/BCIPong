@@ -17,23 +17,17 @@ class Stream:
         self.buffer = np.zeros((len(self.channels), 192))
         self.stop = False
         self.preprocess = PreProcess(125, 4, 40, 2)
-        self.model = LoadModel('/home/nathan/Desktop/BCIMOUSE/capsnet_15.pth')._get()
+        self.model = LoadModel('C:/Users/Nathan/Git/capsnet_15.pth')._get()
         
     def stream(self):
         self.board.start_stream()
         time.sleep(2)
         with torch.no_grad():
             while not self.stop:
-                time.sleep(0.1)
-                data = self.board.get_data()
-                self.buffer = np.concatenate((self.buffer[:, data.shape[1]:], data[self.channels]), axis=1)
-                data = self.preprocess.preprocess(self.buffer)
-                start = time.time()
-                data = torch.tensor(data, dtype=torch.float32).unsqueeze(0)
-                out = self.model(data)
-                end = time.time()
-                print(f"Time taken: {end - start}")
-            
+                data = self.board.get_board_data()
+                data = self.preprocess.preprocess(data[self.channels])
+                data = torch.tensor(data, dtype=torch.float32).unsqueeze(0).unsqueeze(0)
+                out = self.model(data)            
 
 
 
