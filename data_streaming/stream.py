@@ -27,7 +27,7 @@ class Stream:
                 data = self.board.get_board_data()
                 data = self.preprocess.preprocess(data[self.channels])
                 data = torch.tensor(data, dtype=torch.float32).unsqueeze(0).unsqueeze(0)
-                out = self.model(data)            
+                out = self.model(data, mode='test')            
 
 
 
