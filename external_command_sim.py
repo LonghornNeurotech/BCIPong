@@ -2,9 +2,6 @@ from multiprocessing import Pipe, Process
 import time
 import pygame_brain_pong
 
-# A test of external input, to be done via the motor imagery model
-# This implementation runs human vs AI pong with "AI" being controlled
-# by 0 and 1 inputs 
 def external_proc(conn):
     """
     A test of external input, to be done via the motor imagery model.
