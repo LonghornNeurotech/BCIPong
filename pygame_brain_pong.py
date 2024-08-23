@@ -3,6 +3,7 @@ import sys
 from copy import copy
 import math
 import os
+import random
 
 # Initialize Pygame
 pygame.init()
@@ -213,6 +214,7 @@ def update_game(dt):
         player_y - player_height/2 - BALL_DIAMETER <= ball_pos[1] <= player_y + player_height/2):
         ball_vel[0] = abs(ball_vel[0])
         ball_pos[0] = 35 + PADDLE_WIDTH
+        
     elif (WINDOW_WIDTH - 35 - PADDLE_WIDTH <= ball_pos[0] + BALL_DIAMETER <= WINDOW_WIDTH - 35 and 
           player2_y - player2_height/2 - BALL_DIAMETER <= ball_pos[1] <= player2_y + player2_height/2):
         ball_vel[0] = -abs(ball_vel[0])
@@ -222,12 +224,14 @@ def update_game(dt):
         score[1] += 1
         score_changed = True
         ball_pos = list(copy(initial_ball_pos))
-        ball_vel = list(copy(initial_ball_vel))
+        vel_coeff = 1 if random.uniform(-1, 1) > 0 else -1
+        ball_vel = [BALL_VEL, vel_coeff * BALL_VEL]
     elif ball_pos[0] > WINDOW_WIDTH:
         score[0] += 1
         score_changed = True
         ball_pos = list(copy(initial_ball_pos))
-        ball_vel = list(copy(initial_ball_vel))
+        vel_coeff = 1 if random.uniform(-1, 1) > 0 else -1
+        ball_vel = [-BALL_VEL, vel_coeff * BALL_VEL]
 
     if score[0] >= WINNING_SCORE or score[1] >= WINNING_SCORE:
         game_state = "GAME_OVER"
@@ -281,6 +285,31 @@ def scale_surface(surface):
     if fullscreen:
         return pygame.transform.scale(surface, (int(surface.get_width() * scale_factor), int(surface.get_height() * scale_factor)))
     return surface
+
+def check_miss_and_print_distance(ball_rect, paddle_rect, player):
+    # Check if the ball has passed the paddle (miss)
+    if player == 1:  # Assuming player 1 is on the left side
+        if ball_rect.left <= paddle_rect.right:
+            return False  # No miss
+    elif player == 2:  # Assuming player 2 is on the right side
+        if ball_rect.right >= paddle_rect.left:
+            return False  # No miss
+
+    # Calculate distance from ball center to paddle edge
+    ball_center_y = ball_rect.centery
+    paddle_top_y = paddle_rect.top
+    paddle_bottom_y = paddle_rect.bottom
+
+    # Check how far the ball's center is from the paddle's edge
+    if ball_center_y < paddle_top_y:
+        distance_from_edge = paddle_top_y - ball_center_y
+    elif ball_center_y > paddle_bottom_y:
+        distance_from_edge = ball_center_y - paddle_bottom_y
+    else:
+        distance_from_edge = 0  # Ball was aligned vertically with the paddle
+
+    print(f"Ball missed! Distance from paddle's edge: {distance_from_edge}")
+    return True
 
 def main(conn=None):
     global player_velocity, player2_velocity, display_instructions, game_state, player_height, player2_height, game_mode, external_command
