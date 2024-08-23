@@ -18,6 +18,13 @@ class Stream:
         self.stop = False
         self.preprocess = PreProcess(125, 4, 40, 2)
         self.model = LoadModel('C:/Users/Nathan/Git/capsnet_15.pth')._get()
+    
+    def one_hot(self, y):
+        y = y[0]
+        # get index of max value
+        one_hot = np.zeros(2)
+        out_hot[np.argmax(y)] = 1
+        return one_hot
         
     def stream(self):
         self.board.start_stream()
@@ -28,7 +35,9 @@ class Stream:
                 data = self.board.get_board_data()
                 data = self.preprocess.preprocess(data[self.channels])
                 data = torch.tensor(data, dtype=torch.float32).unsqueeze(0).unsqueeze(0)
-                out = self.model(data, mode='test')            
+                out = self.model(data, mode='test')
+                one_hot = self.one_hot(out)
+                            
 
 
 
