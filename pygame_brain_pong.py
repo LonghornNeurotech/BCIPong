@@ -295,10 +295,13 @@ def main(conn=None):
         dt = clock.tick(FPS) / 1000.0
         
         for event in pygame.event.get():
-            if event.type == pygame.QUIT or pygame.K_ESCAPE:
+            if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
             elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    pygame.quit()
+                    sys.exit()
                 if event.key == pygame.K_f:
                     toggle_fullscreen()
                 elif game_state == "MENU":
