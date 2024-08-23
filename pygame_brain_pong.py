@@ -21,6 +21,10 @@ PLAYER_2_VEL = 500
 COUNTDOWN_SECONDS = 5
 BALL_VEL = 250
 
+disp_info = pygame.display.Info()
+DISPLAY_WIDTH = disp_info.current_w
+DISPLAY_HEIGHT = disp_info.current_h
+
 # Game variables
 player_y = player2_y = WINDOW_HEIGHT / 2
 player_velocity = player2_velocity = 0
@@ -41,6 +45,12 @@ display_instructions = True
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 BG_COLOR = (191, 87, 32)  # #BF5720
+
+# Fullscreen variables
+fullscreen = False
+screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
+scale_factor = 1
+fullscreen_offset = (0, 0)
 
 # Create game window
 window = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
@@ -241,6 +251,37 @@ def draw_game_over_screen():
     window.blit(restart_text, (WINDOW_WIDTH // 2 - restart_text.get_width() // 2, WINDOW_HEIGHT // 2 + 50))
     window.blit(menu_text, (WINDOW_WIDTH // 2 - menu_text.get_width() // 2, WINDOW_HEIGHT // 2 + 100))
 
+def toggle_fullscreen():
+    global fullscreen, screen, scale_factor, window, fullscreen_offset
+    fullscreen = not fullscreen
+    if fullscreen:
+        screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
+        screen_info = pygame.display.Info()
+        DISPLAY_WIDTH, DISPLAY_HEIGHT = screen_info.current_w, screen_info.current_h
+        
+        # Calculate the scale factor to fill the screen while maintaining aspect ratio
+        scale_factor = min(DISPLAY_WIDTH / WINDOW_WIDTH, DISPLAY_HEIGHT / WINDOW_HEIGHT)
+        
+        # Calculate the size of the scaled game surface
+        scaled_width = int(WINDOW_WIDTH * scale_factor)
+        scaled_height = int(WINDOW_HEIGHT * scale_factor)
+        
+        # Calculate the offset to center the game on the screen
+        fullscreen_offset = (
+            (DISPLAY_WIDTH - scaled_width) // 2,
+            (DISPLAY_HEIGHT - scaled_height) // 2
+        )
+    else:
+        screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
+        fullscreen_offset = (0, 0)
+        scale_factor = 1
+    window = pygame.Surface((WINDOW_WIDTH, WINDOW_HEIGHT))
+
+def scale_surface(surface):
+    if fullscreen:
+        return pygame.transform.scale(surface, (int(surface.get_width() * scale_factor), int(surface.get_height() * scale_factor)))
+    return surface
+
 def main(conn=None):
     global player_velocity, player2_velocity, display_instructions, game_state, player_height, player2_height, game_mode, external_command
     
@@ -254,11 +295,13 @@ def main(conn=None):
         dt = clock.tick(FPS) / 1000.0
         
         for event in pygame.event.get():
-            if event.type == pygame.QUIT:
+            if event.type == pygame.QUIT or pygame.K_ESCAPE:
                 pygame.quit()
                 sys.exit()
             elif event.type == pygame.KEYDOWN:
-                if game_state == "MENU":
+                if event.key == pygame.K_f:
+                    toggle_fullscreen()
+                elif game_state == "MENU":
                     if event.key == pygame.K_1:
                         game_mode = "HUMAN_VS_HUMAN"
                         game_state = "COUNTDOWN"
@@ -319,6 +362,13 @@ def main(conn=None):
         else:
             draw_game_over_screen()
 
+        if fullscreen:
+            scaled_surface = pygame.transform.scale(window, (int(WINDOW_WIDTH * scale_factor), int(WINDOW_HEIGHT * scale_factor)))
+            screen.fill((0, 0, 0))  # Fill the screen with black
+            screen.blit(scaled_surface, fullscreen_offset)
+        else:
+            screen.blit(window, (0, 0))
+        
         pygame.display.flip()
 
 if __name__ == "__main__":
