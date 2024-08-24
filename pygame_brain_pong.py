@@ -285,7 +285,7 @@ def print_distance_from_ball(ball_pos, ball_size, paddle_pos, extra_message = ""
 
     # Calculate distance from ball center to paddle center
     distance = ball_center_y - paddle_pos
-    print(extra_message + f"Ball was {abs(distance):.2f} pixels away from the paddle's center.")
+    print(extra_message + f"Ball was {abs(distance):.2f} pixels away from the paddle's center.\033[0m")
 
 
 
