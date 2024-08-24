@@ -71,6 +71,17 @@ bg_image = pygame.transform.scale(bg_image, (WINDOW_WIDTH, WINDOW_HEIGHT))
 # Create a surface for static elements
 static_surface = pygame.Surface((WINDOW_WIDTH, WINDOW_HEIGHT), pygame.SRCALPHA)
 
+# Fonts
+font = pygame.font.SysFont("Monaco", 28, bold=True)
+countdown_font = pygame.font.SysFont("Monaco", 72, bold=True)
+instructions_font = pygame.font.SysFont("Monaco", 16, bold=True)
+
+# Game mode and external command
+game_mode = "HUMAN_VS_HUMAN"  # HUMAN_VS_HUMAN, HUMAN_VS_AI
+external_command = 0  # 0 for up, 1 for down
+
+
+
 def create_fifo():
     """
     Create a FIFO (named pipe) for AI commands.
@@ -82,6 +93,8 @@ def create_fifo():
     if not os.path.exists(fifo_path):
         os.mkfifo(fifo_path)
     return fifo_path
+
+
 
 def draw_dotted_line(surface, color, start_pos, end_pos, width=1, 
                      dash_length=10):
@@ -115,18 +128,7 @@ def draw_dotted_line(surface, color, start_pos, end_pos, width=1,
             pygame.draw.line(surface, color, (xcoords[i], y1), 
                              (xcoords[i+1], y1), width)
 
-# Draw the dotted center line
-draw_dotted_line(static_surface, WHITE, (WINDOW_WIDTH // 2, 0), 
-                 (WINDOW_WIDTH // 2, WINDOW_HEIGHT), width=3, dash_length=20)
 
-# Fonts
-font = pygame.font.SysFont("Monaco", 28, bold=True)
-countdown_font = pygame.font.SysFont("Monaco", 72, bold=True)
-instructions_font = pygame.font.SysFont("Monaco", 16, bold=True)
-
-# Game mode and external command
-game_mode = "HUMAN_VS_HUMAN"  # HUMAN_VS_HUMAN, HUMAN_VS_AI
-external_command = 0  # 0 for up, 1 for down
 
 def create_gradient_ball(diameter, inner_color, outer_color):
     """
@@ -154,17 +156,7 @@ def create_gradient_ball(diameter, inner_color, outer_color):
                 surface.set_at((x, y), color + [255])
     return surface
 
-# Create the gradient ball surface
-BALL_INNER_COLOR = (255, 255, 255)  # White center
-BALL_OUTER_COLOR = (150, 150, 150)  # Light grey edge
-ball_surface = create_gradient_ball(BALL_DIAMETER, BALL_INNER_COLOR, 
-                                    BALL_OUTER_COLOR)
 
-# Global variables for optimized rendering
-bg_with_static = None
-instruction_surfaces = {}
-score_surface = None
-score_changed = True
 
 def initialize_game():
     """
@@ -185,6 +177,8 @@ def initialize_game():
     
     score_surface = font.render("0   0", True, WHITE)
 
+
+
 def reset_game():
     """
     This function resets all game variables to their initial values for a new 
@@ -203,6 +197,8 @@ def reset_game():
     player_height = player2_height = 125
     score_changed = True
     player_velocity = player2_velocity = 0
+
+
 
 def draw_game(interpolation):
     """
@@ -270,6 +266,51 @@ def draw_game(interpolation):
         window.blit(countdown_text, 
                     (WINDOW_WIDTH // 2 - countdown_text.get_width() // 2, 
                      WINDOW_HEIGHT // 4 - countdown_text.get_height() // 2))
+
+
+
+def check_miss_and_print_distance(ball_pos, ball_size, paddle_pos, paddle_height, player):
+    """
+    Check if the ball was missed and print the distance from the paddle.
+
+    Args:
+        ball_pos (list): The [x, y] position of the ball's top-left corner.
+        ball_size (int): The diameter of the ball.
+        paddle_pos (float): The y-position of the paddle's center.
+        paddle_height (float): The height of the paddle.
+        player (int): The player number (1 or 2).
+
+    Returns:
+        bool: True if the ball was missed, False otherwise.
+    """
+    ball_center_y = ball_pos[1] + ball_size / 2
+    paddle_top = paddle_pos - paddle_height / 2
+    paddle_bottom = paddle_pos + paddle_height / 2
+
+    # Check if the ball has passed the paddle (miss)
+    if player == 1:  # Player 1 is on the left side
+        if ball_pos[0] > PADDLE_WIDTH + 35:  # Ball has passed the paddle
+            miss = True
+        else:
+            return False  # No miss
+    elif player == 2:  # Player 2 is on the right side
+        if ball_pos[0] + ball_size < WINDOW_WIDTH - PADDLE_WIDTH - 35:  # Ball has passed the paddle
+            miss = True
+        else:
+            return False  # No miss
+
+    # Calculate distance from ball center to nearest paddle edge
+    if ball_center_y < paddle_top:
+        distance = ball_center_y - paddle_top
+    elif ball_center_y > paddle_bottom:
+        distance = ball_center_y - paddle_bottom
+    else:
+        distance = 0  # Ball was aligned with the paddle vertically
+
+    print(f"Player {player} missed! Ball was {abs(distance):.2f} pixels away from the paddle's edge.")
+    return True
+
+
 
 def update_game(dt):
     """
@@ -346,6 +387,8 @@ def update_game(dt):
     if score[0] >= WINNING_SCORE or score[1] >= WINNING_SCORE:
         game_state = "GAME_OVER"
 
+
+
 def draw_menu():
     """
     This function renders the main menu of the game, including the title and 
@@ -361,6 +404,8 @@ def draw_menu():
                                WINDOW_HEIGHT // 2))
     window.blit(option2_text, (WINDOW_WIDTH // 2 - option2_text.get_width() // 2,
                                WINDOW_HEIGHT // 2 + 50))
+
+
 
 def draw_game_over_screen():
     """
@@ -378,6 +423,8 @@ def draw_game_over_screen():
                                WINDOW_HEIGHT // 2 + 50))
     window.blit(menu_text, (WINDOW_WIDTH // 2 - menu_text.get_width() // 2,
                             WINDOW_HEIGHT // 2 + 100))
+
+
 
 def toggle_fullscreen():
     """
@@ -412,6 +459,8 @@ def toggle_fullscreen():
         scale_factor = 1
     window = pygame.Surface((WINDOW_WIDTH, WINDOW_HEIGHT))
 
+
+
 def scale_surface(surface):
     """
     Scales a surface for fullscreen mode.
@@ -428,6 +477,8 @@ def scale_surface(surface):
                                       (int(surface.get_width() * scale_factor),
                                        int(surface.get_height() * scale_factor)))
     return surface
+
+
 
 def main(conn=None):
     """
@@ -544,6 +595,28 @@ def main(conn=None):
             screen.blit(window, (0, 0))
         
         pygame.display.flip()
+
+
+
+"""Initial rendering"""
+
+# Create the gradient ball surface
+BALL_INNER_COLOR = (255, 255, 255)  # White center
+BALL_OUTER_COLOR = (150, 150, 150)  # Light grey edge
+ball_surface = create_gradient_ball(BALL_DIAMETER, BALL_INNER_COLOR, 
+                                    BALL_OUTER_COLOR)
+
+# Global variables for optimized rendering
+bg_with_static = None
+instruction_surfaces = {}
+score_surface = None
+score_changed = True
+
+# Draw the dotted center line
+draw_dotted_line(static_surface, WHITE, (WINDOW_WIDTH // 2, 0), 
+                 (WINDOW_WIDTH // 2, WINDOW_HEIGHT), width=3, dash_length=20)
+
+
 
 if __name__ == "__main__":
     main()
