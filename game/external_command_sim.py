@@ -1,6 +1,6 @@
 from multiprocessing import Pipe, Process
 import time
-import pygame_brain_pong
+import game.pygame_brain_pong as pygame_brain_pong
 
 def external_proc(conn):
     """
