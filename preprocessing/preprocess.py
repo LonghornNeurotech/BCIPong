@@ -19,6 +19,7 @@ class PreProcess:
         self.mean = np.zeros((16, 1))
         self.var = np.zeros((16, 1))
         self.n = 0
+        self.padding_size = 300
 
     def update_batch_stats(self, data):
         """
@@ -37,17 +38,29 @@ class PreProcess:
             self.mean = np.mean(self.buffer[:, -self.n:], axis=1, keepdims=True)
             self.var = np.var(self.buffer[:, -self.n:], axis=1, keepdims=True)
             self.std = np.sqrt(self.var)
-        
+    
+    def reflective_padding(self, data):
+        """
+        Apply reflective padding to the data
+
+        :param data: np.array, shape=(16, self.n), the data to pad
+        :return: np.array, shape=(16, self.n), the padded data
+        """
+        return np.pad(data, ((0, 0), (self.padding_size, self.padding_size)), mode='reflect')
+
 
     def butter_bandpass_filter(self, data):
         """
         Apply a butter bandpass filter to the data
 
-        :param data: np.array, shape=(16, 192), the data to filter
-        :return: np.array, shape=(16, 192), the filtered data
+        :param data: np.array, shape=(16, self.n), the data to filter
+        :return: np.array, shape=(16, self.n), the filtered data
         """
+        signal = data[:, -self.n:]
+        signal = self.reflective_padding(signal)
+        filtered = filtfilt(self.b, self.a, signal, axis=1)
+        return filtered[:, self.padding_size:-self.padding_size]
 
-        return filtfilt(self.b, self.a, data, axis=1)
     
     def zscore(self, data):
         """
@@ -57,7 +70,7 @@ class PreProcess:
         :return: np.array, shape=(16, 192), the normalized data
         """
 
-        return (data - self.mean) / self.std
+        return (data - np.mean(data, axis=1, keepdims=True)) / np.std(data, axis=1, keepdims=True)
 
     def preprocess(self, data):
         """
@@ -71,8 +84,6 @@ class PreProcess:
         data = self.buffer
         data = self.butter_bandpass_filter(data)
         data = self.zscore(data)
-        if data.shape[1] > 192:
-            return data[:, -192:]
 
-        return data
+        return data[:, -192:]
         
