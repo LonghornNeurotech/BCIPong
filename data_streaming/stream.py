@@ -23,7 +23,7 @@ class Stream:
         y = y[0]
         # get index of max value
         one_hot = np.zeros(2)
-        out_hot[np.argmax(y)] = 1
+        one_hot[np.argmax(y)] = 1
         return one_hot
         
     def stream(self):
