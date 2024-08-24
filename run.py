@@ -23,8 +23,8 @@ import serial.tools.list_ports
 import torch
 import numpy as np
 
-dirname = os.path.dirname(__file__)
-print(f"DIRNAME: {dirname}")
+#dirname = os.path.dirname(__file__)
+#print(f"DIRNAME: {dirname}")
 
 def find_serial_port():
     """
@@ -49,13 +49,13 @@ def find_serial_port():
     
     return None
 
-def stream_predictions(conn, stream, stop_event):
+def stream_predictions(conn, model_stream, stop_event):
     """
     Stream predictions from the AI model and send them to the game.
 
     Args:
         conn (Connection): The connection object to send predictions to the game.
-        stream (Stream): The Stream object for getting AI predictions.
+        model_stream (Stream): The Stream object for getting AI predictions.
         stop_event (Event): Event to signal when to stop the stream.
     """
     print(f"Stream predictions process started. PID: {os.getpid()}")
@@ -66,7 +66,7 @@ def stream_predictions(conn, stream, stop_event):
     for attempt in range(max_retries):
         try:
             # Start the stream
-            stream.stream()
+            model_stream.start_stream()
             print("Stream started successfully.")
             break
         except Exception as e:
@@ -79,24 +79,11 @@ def stream_predictions(conn, stream, stop_event):
                 return
 
     with torch.no_grad():
-        while not stop_event.is_set() and not stream.stop:
+        while not stop_event.is_set() and not model_stream.stop:
             try:
                 time.sleep(0.08)
                 
-                # Get the latest data from the stream
-                data = stream.board.get_current_board_data(1)
-                
-                # Preprocess the data
-                preprocessed_data = stream.preprocess.preprocess(data[stream.channels])
-                
-                # Prepare data for the model
-                model_input = torch.tensor(preprocessed_data, dtype=torch.float32).unsqueeze(0).unsqueeze(0)
-                
-                # Make prediction
-                prediction = stream.model(model_input, mode='test')
-                
-                # Convert to one-hot encoding
-                one_hot = stream.one_hot(prediction.cpu().numpy())
+                one_hot = model_stream.get_output()
                 
                 # Send command to the game
                 command = int(one_hot[1])  # 0 for up, 1 for down
@@ -107,7 +94,7 @@ def stream_predictions(conn, stream, stop_event):
     
     print("Stream predictions process ending.")
     # Ensure the stream is stopped
-    stream.stop = True
+    model_stream.stop = True
 
 def main():
     board_id = bf.BoardIds.SYNTHETIC_BOARD.value
