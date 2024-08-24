@@ -33,6 +33,7 @@ player_y = player2_y = WINDOW_HEIGHT / 2  # Initial y-position of paddles
 player_velocity = player2_velocity = 0  # Initial velocity of paddles
 player_height = 125  # Initial height of player 1's paddle
 player2_height = 125  # Initial height of player 2's paddle
+has_just_missed = False  # Variable to track if a player has just missed
 
 # Initial ball position and velocity
 initial_ball_pos = [(WINDOW_WIDTH - BALL_DIAMETER) / 2, 
@@ -269,46 +270,22 @@ def draw_game(interpolation):
 
 
 
-def check_miss_and_print_distance(ball_pos, ball_size, paddle_pos, paddle_height, player):
+def print_distance_from_ball(ball_pos, ball_size, paddle_pos, extra_message = ""):
     """
-    Check if the ball was missed and print the distance from the paddle.
+    Print the ball's distance from a player's paddle center.
 
     Args:
         ball_pos (list): The [x, y] position of the ball's top-left corner.
         ball_size (int): The diameter of the ball.
         paddle_pos (float): The y-position of the paddle's center.
-        paddle_height (float): The height of the paddle.
         player (int): The player number (1 or 2).
 
-    Returns:
-        bool: True if the ball was missed, False otherwise.
     """
     ball_center_y = ball_pos[1] + ball_size / 2
-    paddle_top = paddle_pos - paddle_height / 2
-    paddle_bottom = paddle_pos + paddle_height / 2
 
-    # Check if the ball has passed the paddle (miss)
-    if player == 1:  # Player 1 is on the left side
-        if ball_pos[0] > PADDLE_WIDTH + 35:  # Ball has passed the paddle
-            miss = True
-        else:
-            return False  # No miss
-    elif player == 2:  # Player 2 is on the right side
-        if ball_pos[0] + ball_size < WINDOW_WIDTH - PADDLE_WIDTH - 35:  # Ball has passed the paddle
-            miss = True
-        else:
-            return False  # No miss
-
-    # Calculate distance from ball center to nearest paddle edge
-    if ball_center_y < paddle_top:
-        distance = ball_center_y - paddle_top
-    elif ball_center_y > paddle_bottom:
-        distance = ball_center_y - paddle_bottom
-    else:
-        distance = 0  # Ball was aligned with the paddle vertically
-
-    print(f"Player {player} missed! Ball was {abs(distance):.2f} pixels away from the paddle's edge.")
-    return True
+    # Calculate distance from ball center to paddle center
+    distance = ball_center_y - paddle_pos
+    print(extra_message + f"Ball was {abs(distance):.2f} pixels away from the paddle's center.")
 
 
 
@@ -322,7 +299,8 @@ def update_game(dt):
         movement.
     """
     global player_y, player2_y, ball_pos, ball_vel, score, game_state
-    global display_instructions, countdown_timer, score_changed, player_velocity
+    global display_instructions, countdown_timer, score_changed
+    global player_velocity, has_just_missed
 
     if game_state == "COUNTDOWN":
         countdown_timer -= dt * 1000
@@ -361,6 +339,8 @@ def update_game(dt):
         player_y + player_height/2):
         ball_vel[0] = abs(ball_vel[0])
         ball_pos[0] = 35 + PADDLE_WIDTH
+        print_distance_from_ball(ball_pos, BALL_DIAMETER, player_y, 
+                                 extra_message = "\033[92mPlayer 1 hit the ball! ")
         
     elif (WINDOW_WIDTH - 35 - PADDLE_WIDTH <= 
           ball_pos[0] + BALL_DIAMETER <= WINDOW_WIDTH - 35 and 
@@ -368,6 +348,18 @@ def update_game(dt):
           ball_pos[1] <= player2_y + player2_height/2):
         ball_vel[0] = -abs(ball_vel[0])
         ball_pos[0] = WINDOW_WIDTH - 35 - PADDLE_WIDTH - BALL_DIAMETER
+        print_distance_from_ball(ball_pos, BALL_DIAMETER, player_y, 
+                                 extra_message = "\033[92mPlayer 2 hit the ball! ")
+
+    # Check for misses to print, unless a miss has just happened and we're
+    # waiting for a reset.
+    if not has_just_missed:
+        if ball_pos[0] < BALL_DIAMETER:
+            print_distance_from_ball(ball_pos, BALL_DIAMETER, player_y, extra_message = "\033[91mPlayer 1 missed! ")
+            has_just_missed = True
+        elif ball_pos[0] > WINDOW_WIDTH - 35:
+            print_distance_from_ball(ball_pos, BALL_DIAMETER, player2_y, extra_message = "\033[91mPlayer 2 missed! ")
+            has_just_missed = True
 
     # Ball out of bounds (scoring)
     if ball_pos[0] < -BALL_DIAMETER:
@@ -376,12 +368,14 @@ def update_game(dt):
         ball_pos = list(copy(initial_ball_pos))
         vel_coeff = 1 if random.uniform(-1, 1) > 0 else -1
         ball_vel = [BALL_VEL, vel_coeff * BALL_VEL]
+        has_just_missed = False
     elif ball_pos[0] > WINDOW_WIDTH:
         score[0] += 1
         score_changed = True
         ball_pos = list(copy(initial_ball_pos))
         vel_coeff = 1 if random.uniform(-1, 1) > 0 else -1
         ball_vel = [-BALL_VEL, vel_coeff * BALL_VEL]
+        has_just_missed = False
 
     # Check for game over
     if score[0] >= WINNING_SCORE or score[1] >= WINNING_SCORE:
