@@ -9,6 +9,8 @@ if __name__ == '__main__':
     serial_port = 'COM3'
     stream = Stream(board_id, serial_port)
     stream.stream()"""
+import h5py
+import copy
 
 
 import os
@@ -18,10 +20,12 @@ import brainflow as bf
 from data_streaming.stream import Stream
 from multiprocessing import Pipe, Process, Event
 import game.pygame_brain_pong as pygame_brain_pong
+import online_training.display as display
 import time
 import serial.tools.list_ports
 import torch
 import numpy as np
+import argparse
 
 #dirname = os.path.dirname(__file__)
 #print(f"DIRNAME: {dirname}")
@@ -62,6 +66,7 @@ def stream_predictions(conn, model_stream, stop_event):
     
     max_retries = 5
     retry_delay = 2
+    indexes = {}
     
     for attempt in range(max_retries):
         try:
@@ -77,18 +82,38 @@ def stream_predictions(conn, model_stream, stop_event):
             else:
                 print("Max retries reached. Unable to start stream.")
                 return
-
+    prev_index = 0
     with torch.no_grad():
         while not stop_event.is_set() and not model_stream.stop:
             try:
                 time.sleep(0.08)
                 
-                one_hot = model_stream.get_output()
+                one_hot, index, temp = model_stream.get_output()
+                print(f"Received prediction: {one_hot}")
                 
                 # Send command to the game
                 command = int(one_hot[1])  # 0 for up, 1 for down
-                
-                conn.send(command)
+                conn.send((command, index, temp))
+
+                while conn.poll():
+                    pred, correct, index, temp, done = conn.recv()
+                    if prev_index == 0:
+                        prev_index = index
+                    indexes[int(copy.deepcopy(index))] = copy.deepcopy({'data': copy.deepcopy(temp), 'pred': copy.deepcopy(pred), 'correct': copy.deepcopy(correct)})
+                    prev_index = index
+                    if done:
+                        current_time = time.strftime("%m%d-%H%M%S")
+                        with h5py.File(f"predictions_{current_time}.h5", "w") as f:
+                            for idx in indexes.keys():
+                                group = f.create_group(str(idx))
+                                group.create_dataset("data", data=indexes[int(idx)]['data'])
+                                group.attrs['predicted'] = indexes[int(idx)]['pred']
+                                group.attrs['correct'] = indexes[int(idx)]['correct']
+                        model_stream.save_preds(index, correct)
+                        del indexes
+                        indexes = {}
+                        while conn.poll():
+                            conn.recv()
             except Exception as e:
                 print(f"Error in stream_predictions: {e}")
                 break
@@ -97,7 +122,7 @@ def stream_predictions(conn, model_stream, stop_event):
     # Ensure the stream is stopped
     model_stream.stop = True
 
-def main():
+def main(train):
     board_id = bf.BoardIds.SYNTHETIC_BOARD.value
     
     # Automatically find the serial port
@@ -130,9 +155,14 @@ def main():
         print("Stream object created successfully.")
 
         # Start Pong in a separate process
-        game_process = Process(target=pygame_brain_pong.main, args=(child_conn,))
-        game_process.start()
-        print(f"Game process started. PID: {game_process.pid}")
+        if train:
+            game_process = Process(target=display.main, args=(child_conn,))
+            game_process.start()
+            print(f"Training process started. PID: {game_process.pid}")
+        else:
+            game_process = Process(target=pygame_brain_pong.main, args=(child_conn,))
+            game_process.start()
+            print(f"Game process started. PID: {game_process.pid}")
 
         # Start the streaming process
         stream_process = Process(target=stream_predictions, args=(parent_conn, stream, stop_event))
@@ -167,4 +197,8 @@ def main():
         print("All processes terminated.")
 
 if __name__ == "__main__":
-    main()
+    # get arguments
+    parser = argparse.ArgumentParser(description="BCI Pong")
+    parser.add_argument("--train", action="store_true", help="Train the model")
+    args = parser.parse_args()
+    main(args.train)
