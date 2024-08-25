@@ -66,7 +66,7 @@ def stream_predictions(conn, model_stream, stop_event):
     for attempt in range(max_retries):
         try:
             # Start the stream
-            model_stream.start_stream()
+            model_stream.begin_stream()
             print("Stream started successfully.")
             break
         except Exception as e:
@@ -87,6 +87,7 @@ def stream_predictions(conn, model_stream, stop_event):
                 
                 # Send command to the game
                 command = int(one_hot[1])  # 0 for up, 1 for down
+                
                 conn.send(command)
             except Exception as e:
                 print(f"Error in stream_predictions: {e}")

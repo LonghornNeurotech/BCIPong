@@ -8,16 +8,15 @@ import os
 
 class Stream:
     def __init__(self, board_id, serial_port):
-        model_path = os.path.join(os.getcwd(), 'model/checkpoints/capsnet_15.pth')
+        model_path = os.path.join("C:/Users/Nathan/Git/capsnet_15.pth")
         print("STREAM RUNNING")
         print("MODEL PATH:", model_path)
         self.board_id = board_id
         self.serial_port = serial_port
         self.params = bf.BrainFlowInputParams()
         self.params.serial_port = serial_port
-        self.board = bf.BoardShim(board_id, self.params)
-        self.channels = self.board.get_eeg_channels(board_id)
-        self.board.prepare_session()
+        self.board = bf.BoardShim(self.board_id, self.params)
+        self.channels = self.board.get_eeg_channels(self.board_id)
         self.buffer = np.zeros((len(self.channels), 192))
         self.stop = False
         self.preprocess = PreProcess(125, 4, 40, 2)
@@ -43,8 +42,9 @@ class Stream:
                 out = self.model(data, mode='test')
                 one_hot = self.one_hot(out)
                 
-    def start_stream(self):
+    def begin_stream(self):
         print("starting stream")
+        self.board.prepare_session()
         self.board.start_stream()
         time.sleep(2)
     
@@ -53,4 +53,4 @@ class Stream:
         data = self.preprocess.preprocess(data[self.channels])
         data = torch.tensor(data, dtype=torch.float32).unsqueeze(0).unsqueeze(0)
         out = self.model(data, mode='test')
-        one_hot = self.one_hot(out)
+        return self.one_hot(out)
