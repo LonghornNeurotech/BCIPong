@@ -9,7 +9,8 @@ if __name__ == '__main__':
     serial_port = 'COM3'
     stream = Stream(board_id, serial_port)
     stream.stream()"""
-import json
+import h5py
+import copy
 
 
 import os
@@ -81,34 +82,38 @@ def stream_predictions(conn, model_stream, stop_event):
             else:
                 print("Max retries reached. Unable to start stream.")
                 return
-
+    prev_index = 0
     with torch.no_grad():
         while not stop_event.is_set() and not model_stream.stop:
             try:
                 time.sleep(0.08)
                 
                 one_hot, index, temp = model_stream.get_output()
+                print(f"Received prediction: {one_hot}")
                 
                 # Send command to the game
                 command = int(one_hot[1])  # 0 for up, 1 for down
-
-                conn.send((command, index))
-                print(f"Sent command: {command}")
+                conn.send((command, index, temp))
 
                 while conn.poll():
-                    pred, correct, index, done = conn.recv()
-                    indexes[index] = [temp, correct, pred]
+                    pred, correct, index, temp, done = conn.recv()
+                    if prev_index == 0:
+                        prev_index = index
+                    indexes[int(copy.deepcopy(index))] = copy.deepcopy({'data': copy.deepcopy(temp), 'pred': copy.deepcopy(pred), 'correct': copy.deepcopy(correct)})
+                    prev_index = index
                     if done:
-                        print("Saving predictions...")
-                        current_time = time.strftime("%Y%m%d-%H%M%S")
-                        with open(f"predictions_{correct}_{current_time}.json", "w") as f:
-                            f.write(json.dumps(indexes))
+                        current_time = time.strftime("%m%d-%H%M%S")
+                        with h5py.File(f"predictions_{current_time}.h5", "w") as f:
+                            for idx in indexes.keys():
+                                group = f.create_group(str(idx))
+                                group.create_dataset("data", data=indexes[int(idx)]['data'])
+                                group.attrs['predicted'] = indexes[int(idx)]['pred']
+                                group.attrs['correct'] = indexes[int(idx)]['correct']
+                        model_stream.save_preds(index, correct)
                         del indexes
                         indexes = {}
-                    continue
-
-                indexes[index] = [temp]
-
+                        while conn.poll():
+                            conn.recv()
             except Exception as e:
                 print(f"Error in stream_predictions: {e}")
                 break

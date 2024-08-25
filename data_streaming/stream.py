@@ -50,6 +50,7 @@ class Stream:
         time.sleep(2)
     
     def get_output(self):
+        print("getting output")
         data = self.board.get_board_data()
         temp = data[self.channels]
         self.current_index += np.shape(temp)[1]
@@ -57,3 +58,11 @@ class Stream:
         data = torch.tensor(data, dtype=torch.float32).unsqueeze(0).unsqueeze(0)
         out = self.model(data, mode='test')
         return self.one_hot(out), self.current_index, temp
+    
+    def save_preds(self, index, correct):
+        print("Saving raw data...")
+        current_time = time.strftime("%m%d-%H%M%S")
+        raw = self.preprocess.buffer[:, -self.current_index-192:]
+        np.save(f"raw_data_{correct}_{current_time}.npy", raw)
+        self.current_index = -192
+        print("Raw data saved.")

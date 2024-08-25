@@ -15,7 +15,7 @@ class PreProcess:
         self.low = lowcut / self.nyquist
         self.high = highcut / self.nyquist
         self.b, self.a = butter(order, [self.low, self.high], btype='band')
-        self.buffer = np.zeros((16, 5000))
+        self.buffer = np.zeros((16, 10000))
         self.mean = np.zeros((16, 1))
         self.var = np.zeros((16, 1))
         self.n = 0
@@ -28,11 +28,11 @@ class PreProcess:
         :param data: np.array, shape=(16, *), the data to update the stats with.
         """
         self.n += data.shape[1]
-        if self.n > 5000:
+        if self.n > 10000:
             self.mean = np.mean(self.buffer, axis=1, keepdims=True)
             self.var = np.var(self.buffer, axis=1, keepdims=True)
             self.std = np.sqrt(self.var)
-            self.n = 5000
+            self.n = 10000
 
         else:
             self.mean = np.mean(self.buffer[:, -self.n:], axis=1, keepdims=True)

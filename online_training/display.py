@@ -74,6 +74,14 @@ def main(conn=None):
         bar_width = 0  # Reset the bar width before moving
 
         # Handle predictions through the connection
+        while conn.poll():
+            conn.recv()
+        time.sleep(0.2) # small time to allow a new prediction to be sent
+        while conn.poll():
+            print("cleared pred")
+            _ = conn.recv()
+
+        print("cleared conn")
         while running:
             window.fill(WHITE)
 
@@ -83,7 +91,7 @@ def main(conn=None):
 
             while conn.poll():
                 received = True
-                predicted_direction, index = conn.recv()  # Receive predicted direction (0 for left, 1 for right)
+                predicted_direction, index, temp = conn.recv()  # Receive predicted direction (0 for left, 1 for right)
                 if predicted_direction == 1:
                     direction = 1
                 elif predicted_direction == 0:
@@ -93,12 +101,18 @@ def main(conn=None):
             if direction == 1:
                 bar_position += MOVE_STEP
                 if bar_position >= right_red_bar_x + PASS_THROUGH:
-                    conn.send(predicted_direction, correct_direction, index, True)
+                    conn.send((predicted_direction, correct_direction, index, temp, True))
+                    time.sleep(3)
+                    while conn.poll():
+                        conn.recv()
                     break  # Stop when reaching the right boundary
             elif direction == -1:
                 bar_position -= MOVE_STEP
                 if bar_position <= left_red_bar_x - PASS_THROUGH:
-                    conn.send((predicted_direction, correct_direction, index, True))
+                    conn.send((predicted_direction, correct_direction, index, temp, True))
+                    time.sleep(3)
+                    while conn.poll():
+                        conn.recv()
                     break  # Stop when reaching the left boundary
 
             pygame.draw.rect(window, BAR_COLOR, (bar_position, (WINDOW_HEIGHT - BAR_HEIGHT) // 2, 10, BAR_HEIGHT))
@@ -110,16 +124,16 @@ def main(conn=None):
                 result = "Incorrect"
             # Send the result back through the same connection
             if received:
-                conn.send((predicted_direction, correct_direction, index, False))
+                received = False
+                conn.send((predicted_direction, correct_direction, index, temp, False))
 
-            print("iteration")
 
             pygame.display.flip()
             clock.tick(24)
 
         time.sleep(TASK_DELAY)  # Add delay between tasks
         task_counter += 1  # Alternate task after each boundary hit
-
+    print("Ending")
     pygame.quit()
 
 if __name__ == "__main__":
