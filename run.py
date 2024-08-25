@@ -9,6 +9,7 @@ if __name__ == '__main__':
     serial_port = 'COM3'
     stream = Stream(board_id, serial_port)
     stream.stream()"""
+import json
 
 
 import os
@@ -18,10 +19,12 @@ import brainflow as bf
 from data_streaming.stream import Stream
 from multiprocessing import Pipe, Process, Event
 import game.pygame_brain_pong as pygame_brain_pong
+import online_training.display as display
 import time
 import serial.tools.list_ports
 import torch
 import numpy as np
+import argparse
 
 #dirname = os.path.dirname(__file__)
 #print(f"DIRNAME: {dirname}")
@@ -62,6 +65,7 @@ def stream_predictions(conn, model_stream, stop_event):
     
     max_retries = 5
     retry_delay = 2
+    indexes = {}
     
     for attempt in range(max_retries):
         try:
@@ -83,12 +87,28 @@ def stream_predictions(conn, model_stream, stop_event):
             try:
                 time.sleep(0.08)
                 
-                one_hot = model_stream.get_output()
+                one_hot, index, temp = model_stream.get_output()
                 
                 # Send command to the game
                 command = int(one_hot[1])  # 0 for up, 1 for down
-                
-                conn.send(command)
+
+                conn.send((command, index))
+                print(f"Sent command: {command}")
+
+                while conn.poll():
+                    pred, correct, index, done = conn.recv()
+                    indexes[index] = [temp, correct, pred]
+                    if done:
+                        print("Saving predictions...")
+                        current_time = time.strftime("%Y%m%d-%H%M%S")
+                        with open(f"predictions_{correct}_{current_time}.json", "w") as f:
+                            f.write(json.dumps(indexes))
+                        del indexes
+                        indexes = {}
+                    continue
+
+                indexes[index] = [temp]
+
             except Exception as e:
                 print(f"Error in stream_predictions: {e}")
                 break
@@ -97,7 +117,7 @@ def stream_predictions(conn, model_stream, stop_event):
     # Ensure the stream is stopped
     model_stream.stop = True
 
-def main():
+def main(train):
     board_id = bf.BoardIds.SYNTHETIC_BOARD.value
     
     # Automatically find the serial port
@@ -130,9 +150,14 @@ def main():
         print("Stream object created successfully.")
 
         # Start Pong in a separate process
-        game_process = Process(target=pygame_brain_pong.main, args=(child_conn,))
-        game_process.start()
-        print(f"Game process started. PID: {game_process.pid}")
+        if train:
+            game_process = Process(target=display.main, args=(child_conn,))
+            game_process.start()
+            print(f"Training process started. PID: {game_process.pid}")
+        else:
+            game_process = Process(target=pygame_brain_pong.main, args=(child_conn,))
+            game_process.start()
+            print(f"Game process started. PID: {game_process.pid}")
 
         # Start the streaming process
         stream_process = Process(target=stream_predictions, args=(parent_conn, stream, stop_event))
@@ -167,4 +192,8 @@ def main():
         print("All processes terminated.")
 
 if __name__ == "__main__":
-    main()
+    # get arguments
+    parser = argparse.ArgumentParser(description="BCI Pong")
+    parser.add_argument("--train", action="store_true", help="Train the model")
+    args = parser.parse_args()
+    main(args.train)
