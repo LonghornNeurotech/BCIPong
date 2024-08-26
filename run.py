@@ -26,6 +26,8 @@ import serial.tools.list_ports
 import torch
 import numpy as np
 import argparse
+from online_training.train import Train
+import asyncio
 
 #dirname = os.path.dirname(__file__)
 #print(f"DIRNAME: {dirname}")
@@ -53,6 +55,11 @@ def find_serial_port():
     
     return None
 
+async def async_train():
+    model_trainer = Train()
+    await asyncio.to_thread(model_trainer.train)
+
+
 def stream_predictions(conn, model_stream, stop_event):
     """
     Stream predictions from the AI model and send them to the game.
@@ -67,6 +74,7 @@ def stream_predictions(conn, model_stream, stop_event):
     max_retries = 5
     retry_delay = 2
     indexes = {}
+    data_dict = {}
     
     for attempt in range(max_retries):
         try:
@@ -89,21 +97,28 @@ def stream_predictions(conn, model_stream, stop_event):
                 time.sleep(0.08)
                 
                 one_hot, index, temp = model_stream.get_output()
-                print(f"Received prediction: {one_hot}")
+                data_dict[index] = temp
                 
                 # Send command to the game
                 command = int(one_hot[1])  # 0 for up, 1 for down
-                conn.send((command, index, temp))
+                conn.send((command, index))
 
                 while conn.poll():
-                    pred, correct, index, temp, done = conn.recv()
+                    pred, correct, index, done = conn.recv()
+                    
+                    if prev_index != index: # address interpolation errors
+                        indexes[int(copy.deepcopy(index))] = copy.deepcopy({'data': copy.deepcopy(data_dict[index]), 'pred': copy.deepcopy(pred), 'correct': copy.deepcopy(correct)})
+                        del data_dict[index]
+
                     if prev_index == 0:
                         prev_index = index
-                    indexes[int(copy.deepcopy(index))] = copy.deepcopy({'data': copy.deepcopy(temp), 'pred': copy.deepcopy(pred), 'correct': copy.deepcopy(correct)})
+
                     prev_index = index
+
                     if done:
+                        print("Game ended. Saving predictions...")
                         current_time = time.strftime("%m%d-%H%M%S")
-                        with h5py.File(f"predictions_{current_time}.h5", "w") as f:
+                        with h5py.File(f"C:/Users/Nathan/Git/pong_data/predictions_{correct}_{current_time}.h5", "w") as f:
                             for idx in indexes.keys():
                                 group = f.create_group(str(idx))
                                 group.create_dataset("data", data=indexes[int(idx)]['data'])
@@ -111,9 +126,17 @@ def stream_predictions(conn, model_stream, stop_event):
                                 group.attrs['correct'] = indexes[int(idx)]['correct']
                         model_stream.save_preds(index, correct)
                         del indexes
+                        del data_dict
                         indexes = {}
+                        data_dict = {}
                         while conn.poll():
                             conn.recv()
+                        model_stream.model.train()
+                        model_stream.model = None
+                        loop = asyncio.get_event_loop()
+                        loop.run_until_complete(async_train()) # somehow this works compared to calling the function directly
+                        model_stream.reload_model()
+                        conn.send(True)
             except Exception as e:
                 print(f"Error in stream_predictions: {e}")
                 break

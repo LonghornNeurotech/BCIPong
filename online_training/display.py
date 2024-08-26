@@ -76,6 +76,14 @@ def main(conn=None):
         # Handle predictions through the connection
         while conn.poll():
             conn.recv()
+        model_trained = False
+        while not model_trained:
+            if conn.poll():
+                val = conn.recv()
+                if val:
+                    model_trained = True
+                    break
+            time.sleep(0.5)
         time.sleep(0.2) # small time to allow a new prediction to be sent
         while conn.poll():
             print("cleared pred")
@@ -91,7 +99,7 @@ def main(conn=None):
 
             while conn.poll():
                 received = True
-                predicted_direction, index, temp = conn.recv()  # Receive predicted direction (0 for left, 1 for right)
+                predicted_direction, index = conn.recv()  # Receive predicted direction (0 for left, 1 for right)
                 if predicted_direction == 1:
                     direction = 1
                 elif predicted_direction == 0:
@@ -101,7 +109,7 @@ def main(conn=None):
             if direction == 1:
                 bar_position += MOVE_STEP
                 if bar_position >= right_red_bar_x + PASS_THROUGH:
-                    conn.send((predicted_direction, correct_direction, index, temp, True))
+                    conn.send((predicted_direction, correct_direction, index, True))
                     time.sleep(3)
                     while conn.poll():
                         conn.recv()
@@ -109,7 +117,7 @@ def main(conn=None):
             elif direction == -1:
                 bar_position -= MOVE_STEP
                 if bar_position <= left_red_bar_x - PASS_THROUGH:
-                    conn.send((predicted_direction, correct_direction, index, temp, True))
+                    conn.send((predicted_direction, correct_direction, index, True))
                     time.sleep(3)
                     while conn.poll():
                         conn.recv()
@@ -125,7 +133,7 @@ def main(conn=None):
             # Send the result back through the same connection
             if received:
                 received = False
-                conn.send((predicted_direction, correct_direction, index, temp, False))
+                conn.send((predicted_direction, correct_direction, index, False))
 
 
             pygame.display.flip()
