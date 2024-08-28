@@ -8,7 +8,7 @@ import os
 
 class Stream:
     def __init__(self, board_id, serial_port):
-        self.model_path = os.path.join("C:/Users/Nathan/Git/capsnet_15.pth")
+        self.model_path = os.path.join("C:/Users/Nathan/Git/capsnet_49.pth")
         print("STREAM RUNNING")
         print("MODEL PATH:", self.model_path)
         self.board_id = board_id

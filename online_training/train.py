@@ -10,19 +10,49 @@ from tqdm import tqdm
 import re
 
 class Train:
-    def __init__(self, model_path="C:/Users/Nathan/Git/capsnet_15.pth", data_path="C:/Users/Nathan/Git/pong_data", num_epochs=2):
+    def __init__(self, model_path="C:/Users/Nathan/Git/capsnet_49.pth", data_path="C:/Users/Nathan/Git/pong_data", num_epochs=2):
         self.model = EEGCapsNet()
         self.model_path = model_path
         self.num_epochs = num_epochs
-        self.optimizer = optim.Adam(self.model.parameters(), lr=0.001)
+        self.optimizer = optim.SGD(self.model.parameters(), lr=0.01, momentum=0.95, nesterov=True, weight_decay=0.0001)
         self.criterion = TotalLoss()
         self.data, self.labels = self.load_data(data_path)
-        self.dl = torch.utils.data.DataLoader(list(zip(self.data, self.labels)), batch_size=32, shuffle=True)
-        self.model.load_state_dict(torch.load(model_path, weights_only=True)["state_dict"])
+        self.data, self.labels = self.balance_data(self.data, self.labels)
+        print("balanced the data")
+        self.dl = torch.utils.data.DataLoader(list(zip(self.data, self.labels)), batch_size=64, shuffle=True)
+        self.model.load_state_dict(torch.load(model_path, weights_only=True))
 
     def extract_time(self, s):
         s = int(''.join(re.findall(r'\d+', s)))
         return s
+    
+    def balance_data(self, data, labels):
+        # get min number of each label (either 0 or 1)
+        label_count = {0: 0, 1: 0}
+        for label in labels:
+            idx = torch.argmax(label).item()
+            label_count[idx] += 1
+        min_num = min(label_count.values())
+        # balance the data by using the min_num and applying random sampling (both labels will have the same number of samples (min_num))
+        balanced_data = []
+        balanced_labels = []
+        shuffle = np.random.permutation(len(data))
+        for i in range(2):
+            count = 0
+            for j in shuffle:
+                if torch.argmax(labels[j]).item() == i:
+                    # check for nan
+                    if torch.isnan(data[j]).any():
+                        print("nan found")
+                        continue
+                    balanced_data.append(data[j])
+                    balanced_labels.append(labels[j])
+                    count += 1
+                    if count == min_num:
+                        break
+        return balanced_data, balanced_labels
+
+
 
     def load_data(self, data_path):
         files = sorted(os.listdir(data_path), key=lambda x: self.extract_time(x.split('_')[2]))
@@ -36,9 +66,9 @@ class Train:
                     data.append(torch.from_numpy(np.array(grp['data'])).float())
                     label = grp.attrs['correct']
                     if label == 'right':
-                        labels.append(torch.tensor([0, 1]).float())
-                    else:
                         labels.append(torch.tensor([1, 0]).float())
+                    else:
+                        labels.append(torch.tensor([0, 1]).float())
 
         return data, labels
     
@@ -58,6 +88,10 @@ class Train:
                 x = x.unsqueeze(1)
                 outs = self.model(x, mode='eval')
                 pred = outs[0]
+                # check for nan
+                if torch.isnan(pred).any():
+                    print("nan found")
+                    quit()
                 img = outs[1]
                 y = y.squeeze(1)
                 x_fft = torch.fft.fft(x, dim=-1)
@@ -122,7 +156,7 @@ class Train:
         pbar.close()
         print(f"Final accuracy: {total_accuracy / len(self.dl)}")
 
-        '''torch.save(self.model.state_dict(), self.model_path)'''
+        torch.save(self.model.state_dict(), self.model_path)
         print("Model saved.")
 
 

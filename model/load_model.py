@@ -4,7 +4,7 @@ import torch
 class LoadModel:
     def __init__(self, model_path):
         self.model = EEGCapsNet()
-        self.model.load_state_dict(torch.load(model_path, weights_only=True)["state_dict"])
+        self.model.load_state_dict(torch.load(model_path, weights_only=True))
         self.model.eval()
 
     def _get(self):
