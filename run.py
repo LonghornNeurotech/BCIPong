@@ -20,6 +20,7 @@ import brainflow as bf
 from data_streaming.stream import Stream
 from multiprocessing import Pipe, Process, Event
 import game.pygame_brain_pong as pygame_brain_pong
+import game.pong_practice as pong_practice
 import online_training.display as display
 import time
 import serial.tools.list_ports
@@ -60,7 +61,7 @@ async def async_train():
     await asyncio.to_thread(model_trainer.train)
 
 
-def stream_predictions(conn, model_stream, stop_event):
+def stream_predictions(conn, model_stream, stop_event, train):
     """
     Stream predictions from the AI model and send them to the game.
 
@@ -91,6 +92,7 @@ def stream_predictions(conn, model_stream, stop_event):
                 print("Max retries reached. Unable to start stream.")
                 return
     prev_index = 0
+    event_number = 0
     with torch.no_grad():
         while not stop_event.is_set() and not model_stream.stop:
             try:
@@ -100,49 +102,57 @@ def stream_predictions(conn, model_stream, stop_event):
                 data_dict[index] = temp
                 
                 # Send command to the game
-                command = int(one_hot[1])  # 0 for up, 1 for down
+                command = int(one_hot[1])  # 1 for left, 0 for right
                 conn.send((command, index))
 
-                while conn.poll():
-                    pred, correct, index, done = conn.recv()
-                    
-                    if prev_index != index: # address interpolation errors
-                        indexes[int(copy.deepcopy(index))] = copy.deepcopy({'data': copy.deepcopy(data_dict[index]), 'pred': copy.deepcopy(pred), 'correct': copy.deepcopy(correct)})
-                        del data_dict[index]
 
-                    if prev_index == 0:
+                if train:
+                    while conn.poll():
+                        pred, correct, index, done = conn.recv()
+                        
+                        if prev_index != index: # address interpolation errors
+                            indexes[int(copy.deepcopy(index))] = copy.deepcopy({'data': copy.deepcopy(data_dict[index]), 'pred': copy.deepcopy(pred), 'correct': copy.deepcopy(correct)})
+                            del data_dict[index]
+
+                        if prev_index == 0:
+                            prev_index = index
+
                         prev_index = index
 
-                    prev_index = index
+                        if done:
+                            print("Game ended. Saving predictions...")
+                            current_time = time.strftime("%m%d-%H%M%S")
+                            with h5py.File(f"C:/Users/Nathan/Git/pong_data/predictions_{correct}_{current_time}.h5", "w") as f:
+                                for idx in indexes.keys():
+                                    group = f.create_group(str(idx))
+                                    group.create_dataset("data", data=indexes[int(idx)]['data'])
+                                    group.attrs['predicted'] = indexes[int(idx)]['pred']
+                                    group.attrs['correct'] = indexes[int(idx)]['correct']
+                            model_stream.save_preds(index, correct)
+                            event_number += 1
+                            del indexes
+                            del data_dict
+                            indexes = {}
+                            data_dict = {}
+                            while conn.poll():
+                                conn.recv()
+                            if event_number % 4 == 0:
+                                model_stream.model.train()
+                                model_stream.model = None
+                                loop = asyncio.get_event_loop()
+                                loop.run_until_complete(async_train())
+                                print("Model retrained.")
+                                model_stream.reload_model()
+                                print("Model reloaded.")
+                            conn.send(True)
+                            print("Sent True.")
 
-                    if done:
-                        print("Game ended. Saving predictions...")
-                        current_time = time.strftime("%m%d-%H%M%S")
-                        with h5py.File(f"C:/Users/Nathan/Git/pong_data/predictions_{correct}_{current_time}.h5", "w") as f:
-                            for idx in indexes.keys():
-                                group = f.create_group(str(idx))
-                                group.create_dataset("data", data=indexes[int(idx)]['data'])
-                                group.attrs['predicted'] = indexes[int(idx)]['pred']
-                                group.attrs['correct'] = indexes[int(idx)]['correct']
-                        model_stream.save_preds(index, correct)
-                        del indexes
-                        del data_dict
-                        indexes = {}
-                        data_dict = {}
-                        while conn.poll():
-                            conn.recv()
-                        model_stream.model.train()
-                        model_stream.model = None
-                        loop = asyncio.get_event_loop()
-                        loop.run_until_complete(async_train()) # somehow this works compared to calling the function directly
-                        model_stream.reload_model()
-                        conn.send(True)
             except Exception as e:
                 print(f"Error in stream_predictions: {e}")
                 break
     
     print("Stream predictions process ending.")
-    # Ensure the stream is stopped
+
     model_stream.stop = True
 
 def main(train):
@@ -179,7 +189,7 @@ def main(train):
 
         # Start Pong in a separate process
         if train:
-            game_process = Process(target=display.main, args=(child_conn,))
+            game_process = Process(target=pong_practice.main, args=(child_conn,))
             game_process.start()
             print(f"Training process started. PID: {game_process.pid}")
         else:
@@ -188,7 +198,7 @@ def main(train):
             print(f"Game process started. PID: {game_process.pid}")
 
         # Start the streaming process
-        stream_process = Process(target=stream_predictions, args=(parent_conn, stream, stop_event))
+        stream_process = Process(target=stream_predictions, args=(parent_conn, stream, stop_event, train))
         stream_process.start()
         print(f"Stream process started. PID: {stream_process.pid}")
 

@@ -58,12 +58,12 @@ def main(conn=None):
     FPS = 60
     PHYSICS_FPS = 240
     PADDLE_WIDTH = 15
-    PADDLE_MIN_HEIGHT = 50
+    PADDLE_MIN_HEIGHT = 30
     PADDLE_MAX_HEIGHT = 250
     BALL_DIAMETER = 25
     WINNING_SCORE = 5
-    PLAYER_1_VEL = 500
-    PLAYER_2_VEL = 500
+    PLAYER_1_VEL = 200
+    PLAYER_2_VEL = 1500
     COUNTDOWN_SECONDS = 5
     BALL_VEL = 250
 
@@ -395,8 +395,11 @@ def main(conn=None):
         # Handle external commands in HUMAN_VS_AI (brain) mode
         if game_mode == "HUMAN_VS_AI" and conn:
             if conn.poll():
-                external_command = conn.recv()
-                player_velocity = -PLAYER_1_VEL if external_command == 0 else PLAYER_1_VEL
+                external_command, _ = conn.recv()
+                if external_command == 0:
+                    player_velocity = -PLAYER_1_VEL
+                else:
+                    player_velocity = PLAYER_1_VEL
 
         # Update and draw game based on current state
         if game_state == "MENU":

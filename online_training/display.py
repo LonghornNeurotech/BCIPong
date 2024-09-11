@@ -99,11 +99,11 @@ def main(conn=None):
 
             while conn.poll():
                 received = True
-                predicted_direction, index = conn.recv()  # Receive predicted direction (0 for left, 1 for right)
+                predicted_direction, index = conn.recv()  # Receive predicted direction (1 for left, 0 for right)
                 if predicted_direction == 1:
-                    direction = 1
-                elif predicted_direction == 0:
                     direction = -1
+                elif predicted_direction == 0:
+                    direction = 1
 
             # Continuously move the bar in the current direction
             if direction == 1:
