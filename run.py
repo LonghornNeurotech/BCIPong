@@ -20,6 +20,7 @@ import brainflow as bf
 from data_streaming.stream import Stream
 from multiprocessing import Pipe, Process, Event
 import game.pygame_brain_pong as pygame_brain_pong
+import game.pong_practice as pong_practice
 import online_training.display as display
 import time
 import serial.tools.list_ports
@@ -102,7 +103,6 @@ def stream_predictions(conn, model_stream, stop_event, train):
                 
                 # Send command to the game
                 command = int(one_hot[1])  # 1 for left, 0 for right
-                print(command)
                 conn.send((command, index))
 
 
@@ -136,7 +136,7 @@ def stream_predictions(conn, model_stream, stop_event, train):
                             data_dict = {}
                             while conn.poll():
                                 conn.recv()
-                            if event_number % 2 == 0:
+                            if event_number % 4 == 0:
                                 model_stream.model.train()
                                 model_stream.model = None
                                 loop = asyncio.get_event_loop()
@@ -156,7 +156,7 @@ def stream_predictions(conn, model_stream, stop_event, train):
     model_stream.stop = True
 
 def main(train):
-    board_id = bf.BoardIds.CYTON_DAISY_BOARD.value
+    board_id = bf.BoardIds.SYNTHETIC_BOARD.value
     
     # Automatically find the serial port
     serial_port = find_serial_port()
@@ -189,7 +189,7 @@ def main(train):
 
         # Start Pong in a separate process
         if train:
-            game_process = Process(target=display.main, args=(child_conn,))
+            game_process = Process(target=pong_practice.main, args=(child_conn,))
             game_process.start()
             print(f"Training process started. PID: {game_process.pid}")
         else:

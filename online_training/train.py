@@ -14,7 +14,7 @@ class Train:
         self.model = EEGCapsNet()
         self.model_path = model_path
         self.num_epochs = num_epochs
-        self.optimizer = optim.SGD(self.model.parameters(), lr=0.01, momentum=0.95, nesterov=True, weight_decay=0.0001)
+        self.optimizer = optim.SGD(self.model.parameters(), lr=0.001, momentum=0.95, nesterov=True, weight_decay=0.0001)
         self.criterion = TotalLoss()
         self.data, self.labels = self.load_data(data_path)
         self.data, self.labels = self.balance_data(self.data, self.labels)
@@ -161,7 +161,7 @@ class Train:
 
 
 def main():
-    model_path = "C:/Users/Nathan/Git/capsnet_15.pth"
+    model_path = "C:/Users/Nathan/Git/capsnet_49.pth"
     data_path = "C:/Users/Nathan/Git/pong_data"
     t = Train(model_path, data_path)
     t.train()
