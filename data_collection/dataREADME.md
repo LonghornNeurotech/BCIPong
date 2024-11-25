@@ -70,6 +70,8 @@ python eeg_motor_imagery.py
 
 The data collection procedure involves guiding a subject through a series of motor imagery tasks while collecting EEG data. The subject is instructed to imagine squeezing their left or right hand based on arrow cues displayed on the screen. Consistency in the imagined movements and maintaining a still posture are crucial for obtaining high-quality data.
 
+![GUI](~/BCIPong/assets/data-collection.png)
+
 ### Detailed Steps
 
 1. Preparation:
@@ -146,7 +148,7 @@ The data collection procedure involves guiding a subject through a series of mot
 	*   Offer breaks between runs if necessary.
 *   Data Integrity:
 	*   Check the EEG data periodically to ensure signal quality.
-	8   Address any issues with electrode placement or impedance promptly.
+	*   Address any issues with electrode placement or impedance promptly.
 
 ### Contact Information
 
