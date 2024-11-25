@@ -132,41 +132,57 @@ The fine-tuning process allows the machine learning model to adapt to your speci
 
 ## Project Structure
 
-BCI-Pong-Game/
-
-├── assets/
-
-│   └── Picture2.png  # Background image
-
-├── data_streaming/
-
-│   ├── __init__.py
-
-│   └── stream.py  # Data streaming logic
-
-├── game/
-
-│   ├── __init__.py
-
-│   ├── config.py  # Game configuration constants
-│   ├── entities.py  # Game entities (Paddle, Ball)
-│   ├── input_handler.py  # Input handling logic
-│   ├── main.py  # Main game script
-│   ├── practice_mode.py  # Practice mode logic
-│   ├── render.py  # Rendering functions
-│   └── utils.py  # Utility functions
-├── model/
-│   ├── CapsNet.py  # EEGNet model definition
-│   ├── generate_weights.py  # Generate weights if not already downloaded
-│   ├── load_model.py  # Load model weights
-│   ├── loss.py  # Includes loss functions for training
-│   ├── utils.py  # Include utilities for CapsNet
-│   └── streamer.py  # Streaming predictions and model updates
-├── online_training/
-│   ├── store_data.py  # Store data
-│   └── train.py  # Train model
-├── run.py  # Script to start the game
-└── requirements.txt  # Python dependencies
+├── README.md
+├── __init__.py
+├── __pycache__
+│   ├── pygame_brain_pong.cpython-312.pyc
+│   ├── streamer.cpython-39.pyc
+│   └── utils.cpython-39.pyc
+├── assets
+│   └── Picture2.png
+├── data
+├── data_collection
+│   ├── __init__.py
+│   └── dataREADME.md
+├── data_streaming
+│   ├── __init__.py
+│   ├── __pycache__
+│   └── stream.py
+├── game
+│   ├── __init__.py
+│   ├── __pycache__
+│   ├── bci_input.py
+│   ├── config.py
+│   ├── entities.py
+│   ├── gameREADME.md
+│   ├── input_handler.py
+│   ├── main.py
+│   ├── pong_practice.py
+│   ├── render.py
+│   └── utils.py
+├── model
+│   ├── CapsNet.py
+│   ├── __init__.py
+│   ├── __pycache__
+│   ├── generate_weights.py
+│   ├── load_model.py
+│   ├── modelREADME.md
+│   └── utils.py
+├── online_training
+│   ├── __pycache__
+│   ├── loss.py
+│   ├── store_data.py
+│   └── train.py
+├── preprocessing
+│   ├── __init__.py
+│   ├── __pycache__
+│   ├── preprocess.py
+│   └── preprocessingREADME.md
+├── run.py
+├── streamer.py
+├── tree.md
+├── utils.py
+└── weights
 
 
 ### License
