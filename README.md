@@ -134,32 +134,31 @@ The fine-tuning process allows the machine learning model to adapt to your speci
 
 BCI-Pong-Game/
 ├── assets/
-│   └── Picture2.png          # Background image
+│   └── Picture2.png  # Background image
 ├── data_streaming/
 │   ├── __init__.py
-│   └── stream.py             # Data streaming logic
+│   └── stream.py  # Data streaming logic
 ├── game/
 │   ├── __init__.py
-│   ├── config.py             # Game configuration constants
-│   ├── entities.py           # Game entities (Paddle, Ball)
-│   ├── input_handler.py      # Input handling logic
-│   ├── main.py               # Main game script
-│   ├── practice_mode.py      # Practice mode logic
-│   ├── render.py             # Rendering functions
-│   └── utils.py              # Utility functions
+│   ├── config.py  # Game configuration constants
+│   ├── entities.py  # Game entities (Paddle, Ball)
+│   ├── input_handler.py  # Input handling logic
+│   ├── main.py  # Main game script
+│   ├── practice_mode.py  # Practice mode logic
+│   ├── render.py  # Rendering functions
+│   └── utils.py  # Utility functions
 ├── model/
-│   ├── CapsNet.py            # EEGNet model definition
-│   ├── generate_weights.py   # generate weights if not already downloaded
-│   ├── load_model.py         # load model weights
-│   └── utils.py              # include utilities for CapsNet
+│   ├── CapsNet.py  # EEGNet model definition
+│   ├── generate_weights.py  # Generate weights if not already downloaded
+│   ├── load_model.py  # Load model weights
+│   ├── loss.py  # Includes loss functions for training
+│   ├── utils.py  # Include utilities for CapsNet
+│   └── streamer.py  # Streaming predictions and model updates
 ├── online_training/
-│   ├── loss.py               # includes loss functions for training
-│   ├── store_data.py         # store data
-│   └── train.py              # train model
-├── utils.py
-├── streamer.py               # Streaming predictions and model updates
-├── run.py                    # Script to start the game
-└── requirements.txt          # Python dependencies
+│   ├── store_data.py  # Store data
+│   └── train.py  # Train model
+├── run.py  # Script to start the game
+└── requirements.txt  # Python dependencies
 
 
 ### License
