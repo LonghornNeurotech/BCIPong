@@ -1,6 +1,6 @@
 from multiprocessing import Pipe, Process
 import time
-import game.pygame_brain_pong as pygame_brain_pong
+import BCIPong.game.main as main
 
 def external_proc(conn):
     """
@@ -25,7 +25,7 @@ if __name__ == "__main__":
     parent_conn, child_conn = Pipe()
     
     # Start Pong in a separate process
-    game_process = Process(target=pygame_brain_pong.main, args=(child_conn,))
+    game_process = Process(target=main.main, args=(child_conn,))
     game_process.start()
     
     try:

@@ -3,12 +3,14 @@ import numpy as np
 import time
 from preprocessing.preprocess import PreProcess
 from model.load_model import LoadModel
+from model.generate_weights import GenerateWeights
 import torch
 import os
 
+
 class Stream:
     def __init__(self, board_id, serial_port):
-        self.model_path = os.path.join("C:/Users/Nathan/Git/capsnet_49.pth")
+        self.model_path = os.path.join("add-model-path-here")
         print("STREAM RUNNING")
         print("MODEL PATH:", self.model_path)
         self.board_id = board_id
@@ -20,12 +22,12 @@ class Stream:
         self.buffer = np.zeros((len(self.channels), 192))
         self.stop = False
         self.preprocess = PreProcess(125, 4, 40, 2)
+        self.model_path = GenerateWeights()._get()
         self.model = LoadModel(self.model_path)._get()
         self.current_index = -192
     
     def one_hot(self, y):
         y = y[0]
-        # get index of max value
         one_hot = np.zeros(2)
         one_hot[np.argmax(y)] = 1
         return one_hot
@@ -65,6 +67,6 @@ class Stream:
         print("Saving raw data...")
         current_time = time.strftime("%m%d-%H%M%S")
         raw = self.preprocess.buffer[:, -self.current_index-192:]
-        np.save(f"raw_data_{correct}_{current_time}.npy", raw)
+        np.save(f"{os.getcwd()}/data/raw_data_{correct}_{current_time}.npy", raw)
         self.current_index = -192
         print("Raw data saved.")

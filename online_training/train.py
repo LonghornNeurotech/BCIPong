@@ -10,17 +10,18 @@ from tqdm import tqdm
 import re
 
 class Train:
-    def __init__(self, model_path="C:/Users/Nathan/Git/capsnet_49.pth", data_path="C:/Users/Nathan/Git/pong_data", num_epochs=2):
+    def __init__(self, model_path=f"{os.getcwd()}/weights/pong_weights.pth", data_path=f"{os.getcwd()}/data/", num_epochs=2):
         self.model = EEGCapsNet()
         self.model_path = model_path
         self.num_epochs = num_epochs
-        self.optimizer = optim.SGD(self.model.parameters(), lr=0.001, momentum=0.95, nesterov=True, weight_decay=0.0001)
+        self.optimizer = optim.SGD(self.model.parameters(), lr=0.0001, momentum=0.95, nesterov=True, weight_decay=0.0001)
         self.criterion = TotalLoss()
         self.data, self.labels = self.load_data(data_path)
         self.data, self.labels = self.balance_data(self.data, self.labels)
         print("balanced the data")
-        self.dl = torch.utils.data.DataLoader(list(zip(self.data, self.labels)), batch_size=64, shuffle=True)
+        self.dl = torch.utils.data.DataLoader(list(zip(self.data, self.labels)), batch_size=32, shuffle=True)
         self.model.load_state_dict(torch.load(model_path, weights_only=True))
+        self.device = "cuda" if torch.cuda.is_available() else "cpu"
 
     def extract_time(self, s):
         s = int(''.join(re.findall(r'\d+', s)))
@@ -55,11 +56,16 @@ class Train:
 
 
     def load_data(self, data_path):
+        print(data_path)
         files = sorted(os.listdir(data_path), key=lambda x: self.extract_time(x.split('_')[2]))
+        print()
 
         data = []
         labels = []
         for file in files:
+            print(os.path.join(data_path, file))
+            if not file.endswith('.h5'):
+                continue
             with h5py.File(os.path.join(data_path, file), "r") as f:
                 for index in f.keys():
                     grp = f[index]
@@ -77,14 +83,14 @@ class Train:
         deep_super_weights = deep_super_weights / np.sum(deep_super_weights)
         # compute accuracy before
         self.model.eval()
-        self.model.cuda()
+        self.model.device = "cuda" if torch.cuda.is_available() else "cpu"
         test_loss = 0
         total_accuracy = 0
         with torch.no_grad():
             pbar = tqdm(total=len(self.dl))
             for j, (x, y) in enumerate(self.dl):
-                x = x.float().cuda()
-                y = y.cuda()
+                x = x.float()
+                y = y.to(self.device)
                 x = x.unsqueeze(1)
                 outs = self.model(x, mode='eval')
                 pred = outs[0]
@@ -110,8 +116,8 @@ class Train:
             self.model.train()
             total_loss = 0
             for i, (data, label) in enumerate(self.dl):
-                data = data.unsqueeze(1).cuda()
-                label = label.cuda()
+                data = data.unsqueeze(1).to(self.device)
+                label = label.to(self.device)
                 self.optimizer.zero_grad()
                 x_fft = torch.fft.fft(data, dim=-1)
                 outs = self.model(data)
@@ -137,8 +143,8 @@ class Train:
         with torch.no_grad():
             pbar = tqdm(total=len(self.dl))
             for j, (x, y) in enumerate(self.dl):
-                x = x.float().cuda()
-                y = y.cuda()
+                x = x.float().to(self.device)
+                y = y.to(self.device)
                 x = x.unsqueeze(1)
                 outs = self.model(x, mode='eval')
                 pred = outs[0]

@@ -1,7 +1,17 @@
+# /game/main.py
+
 import pygame
 import random
+import time
+import sys
+from multiprocessing import Pipe
+
 from game.config import *
-from game.utils import *
+from game.utils import create_gradient_ball, print_distance_from_ball
+from game.entities import Paddle, Ball
+from game.input_handler import handle_input
+from game.render import draw_game, draw_menu, draw_game_over_screen, draw_static_elements
+from game.pong_practice import practice_mode
 
 def practice_mode(conn, window, screen, clock, fullscreen, scale_factor, fullscreen_offset, bg_with_static):
     """
@@ -285,3 +295,287 @@ def practice_mode(conn, window, screen, clock, fullscreen, scale_factor, fullscr
     # Practice mode completed or exited
     # Return to main menu
     return 'MAIN_MENU', fullscreen, scale_factor, fullscreen_offset
+
+def main(conn=None):
+    """
+    Main function to run the Pong game.
+
+    Args:
+        conn: Optional multiprocessing connection for external commands.
+    """
+    print("Starting Pygame Brain Pong Game...")
+    pygame.init()
+    clock = pygame.time.Clock()
+
+    # Create game window
+    window = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
+    pygame.display.set_caption("Pygame Brain Pong Game")
+
+    # Load and scale background image
+    bg_image = pygame.image.load('assets/Picture2.png').convert()
+    bg_image = pygame.transform.scale(bg_image, (WINDOW_WIDTH, WINDOW_HEIGHT))
+
+    # Pre-rendered static elements
+    bg_with_static = draw_static_elements(bg_image)
+
+    # Game variables
+    game_state = "MAIN_MENU"
+    display_instructions = True
+    external_command = 0
+    game_mode = None
+    score = [0, 0]
+    countdown_timer = COUNTDOWN_SECONDS * 1000
+    has_just_missed = False
+    fullscreen = False
+    scale_factor = 1
+    fullscreen_offset = (0, 0)
+    screen = window
+
+    # Initialize paddles and ball
+    player1 = Paddle(35, WINDOW_HEIGHT / 2, PADDLE_INITIAL_HEIGHT, PLAYER_1_VEL)
+    player2 = Paddle(WINDOW_WIDTH - 35 - PADDLE_WIDTH, WINDOW_HEIGHT / 2, PADDLE_INITIAL_HEIGHT, PLAYER_2_VEL)
+    ball = Ball(
+        (WINDOW_WIDTH - BALL_DIAMETER) / 2,
+        (WINDOW_HEIGHT - BALL_DIAMETER) / 2,
+        BALL_DIAMETER,
+        BALL_VEL
+    )
+
+    ball_surface = create_gradient_ball(BALL_DIAMETER, BALL_INNER_COLOR, BALL_OUTER_COLOR)
+
+    # Physics timing
+    physics_time = 0
+    physics_step = 1 / PHYSICS_FPS
+
+    # Game actions
+    game_actions = {
+        'toggle_fullscreen': False,
+        'start_game': None,
+        'restart': False,
+        'menu': False,
+        'selected_option': None
+    }
+
+    # Fonts for menu
+    menu_font = pygame.font.SysFont("Monaco", 40, bold=True)
+    menu_options = ["Play Game", "Fine-tune Model", "Exit"]
+    selected_option_index = 0
+    menu_option_rects = []
+
+    while True:
+        dt = clock.tick(FPS) / 1000.0
+
+        # Event handling
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                return
+            handle_input(event, game_state, (player1, player2), game_actions)
+            # Handle menu navigation
+            if game_state == "MAIN_MENU":
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_UP:
+                        selected_option_index = (selected_option_index - 1) % len(menu_options)
+                    elif event.key == pygame.K_DOWN:
+                        selected_option_index = (selected_option_index + 1) % len(menu_options)
+                    elif event.key == pygame.K_RETURN:
+                        game_actions['selected_option'] = menu_options[selected_option_index]
+                elif event.type == pygame.MOUSEBUTTONDOWN:
+                    mouse_pos = event.pos  # Get the mouse position
+                    # Check if the mouse click is within any of the option rects
+                    for idx, rect in enumerate(menu_option_rects):
+                        if rect.collidepoint(mouse_pos):
+                            selected_option_index = idx
+                            game_actions['selected_option'] = menu_options[selected_option_index]
+                            break  # Exit the loop after finding the clicked option
+
+        # Handle game actions
+        if game_actions['toggle_fullscreen']:
+            fullscreen = not fullscreen
+            if fullscreen:
+                screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
+                screen_info = pygame.display.Info()
+                display_width, display_height = screen_info.current_w, screen_info.current_h
+                scale_factor = min(display_width / WINDOW_WIDTH, display_height / WINDOW_HEIGHT)
+                scaled_width = int(WINDOW_WIDTH * scale_factor)
+                scaled_height = int(WINDOW_HEIGHT * scale_factor)
+                fullscreen_offset = (
+                    (display_width - scaled_width) // 2,
+                    (display_height - scaled_height) // 2
+                )
+            else:
+                screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
+                fullscreen_offset = (0, 0)
+                scale_factor = 1
+            game_actions['toggle_fullscreen'] = False
+
+        if game_actions['selected_option']:
+            selected_option = game_actions['selected_option']
+            if selected_option == "Play Game":
+                game_mode = "HUMAN_VS_AI"  # Or "HUMAN_VS_AI"
+                game_state = "COUNTDOWN"
+                score = [0, 0]
+                countdown_timer = COUNTDOWN_SECONDS * 1000
+                player1.y = player2.y = WINDOW_HEIGHT / 2
+                player1.height = player2.height = PADDLE_INITIAL_HEIGHT
+                ball.x = (WINDOW_WIDTH - BALL_DIAMETER) / 2
+                ball.y = (WINDOW_HEIGHT - BALL_DIAMETER) / 2
+                ball.vx = BALL_VEL * (1 if random.choice([True, False]) else -1)
+                ball.vy = BALL_VEL * (1 if random.choice([True, False]) else -1)
+                game_actions['selected_option'] = None
+                if conn:
+                    conn.send({'type': 'SET_MODE', 'mode': 'PLAY'})
+            elif selected_option == "Fine-tune Model":
+                game_state = "PRACTICE_MODE"
+                game_actions['selected_option'] = None
+                if conn:
+                    conn.send({'type': 'SET_MODE', 'mode': 'TRAIN'})
+            elif selected_option == "Exit":
+                pygame.quit()
+                return
+
+        if game_actions['restart']:
+            game_state = "COUNTDOWN"
+            score = [0, 0]
+            countdown_timer = COUNTDOWN_SECONDS * 1000
+            player1.y = player2.y = WINDOW_HEIGHT / 2
+            player1.height = player2.height = PADDLE_INITIAL_HEIGHT
+            ball.x = (WINDOW_WIDTH - BALL_DIAMETER) / 2
+            ball.y = (WINDOW_HEIGHT - BALL_DIAMETER) / 2
+            ball.vx = BALL_VEL * (1 if random.choice([True, False]) else -1)
+            ball.vy = BALL_VEL * (1 if random.choice([True, False]) else -1)
+            game_actions['restart'] = False
+
+        if game_actions['menu']:
+            game_state = "MAIN_MENU"
+            game_actions['menu'] = False
+
+        # Handle external commands
+        if game_mode == "HUMAN_VS_AI" and conn:
+            if conn.poll():
+                message = conn.recv()
+                if isinstance(message, dict) and message.get('type') == 'DATA':
+                    external_command = message['command']
+                    # Update player movement based on external_command
+                    if external_command == 0:
+                        player1.movement = -1
+                    else:
+                        player1.movement = 1
+
+        # Game logic updates
+        if game_state == "COUNTDOWN":
+            countdown_timer -= dt * 1000
+            if countdown_timer <= 0:
+                game_state = "PLAYING"
+
+        elif game_state == "PLAYING":
+            physics_time += dt
+            while physics_time >= physics_step:
+                # Update paddles
+                player1.move(physics_step)
+                player2.move(physics_step)
+
+                # Update ball
+                ball.move(physics_step)
+
+                # Ball collision with walls
+                if ball.y <= 0 or ball.y >= WINDOW_HEIGHT - BALL_DIAMETER:
+                    ball.vy = -ball.vy
+                    ball.y = max(0, min(ball.y, WINDOW_HEIGHT - BALL_DIAMETER))
+
+                if (
+                    35 <= ball.x <= 35 + PADDLE_WIDTH and
+                    player1.y - player1.height / 2 - BALL_DIAMETER <= ball.y <= player1.y + player1.height / 2
+                ):
+                    ball.vx = abs(ball.vx)
+                    ball.x = 35 + PADDLE_WIDTH
+                    print_distance_from_ball(
+                        (ball.x, ball.y), BALL_DIAMETER, player1.y,
+                        extra_message="\033[92mPlayer 1 hit the ball! "
+                    )
+
+                elif (
+                    WINDOW_WIDTH - 35 - PADDLE_WIDTH <= ball.x + BALL_DIAMETER <= WINDOW_WIDTH - 35 and
+                    player2.y - player2.height / 2 - BALL_DIAMETER <= ball.y <= player2.y + player2.height / 2
+                ):
+                    ball.vx = -abs(ball.vx)
+                    ball.x = WINDOW_WIDTH - 35 - PADDLE_WIDTH - BALL_DIAMETER
+                    print_distance_from_ball(
+                        (ball.x, ball.y), BALL_DIAMETER, player2.y,
+                        extra_message="\033[92mPlayer 2 hit the ball! "
+                    )
+
+                # Check for misses
+                if not has_just_missed:
+                    if ball.x < BALL_DIAMETER:
+                        print_distance_from_ball(
+                            (ball.x, ball.y), BALL_DIAMETER, player1.y,
+                            extra_message="\033[91mPlayer 1 missed! "
+                        )
+                        has_just_missed = True
+                    elif ball.x > WINDOW_WIDTH - 35:
+                        print_distance_from_ball(
+                            (ball.x, ball.y), BALL_DIAMETER, player2.y,
+                            extra_message="\033[91mPlayer 2 missed! "
+                        )
+                        has_just_missed = True
+
+                # Ball out of bounds (scoring)
+                if ball.x < -BALL_DIAMETER:
+                    score[1] += 1
+                    ball.x = (WINDOW_WIDTH - BALL_DIAMETER) / 2
+                    ball.y = (WINDOW_HEIGHT - BALL_DIAMETER) / 2
+                    ball.vx = BALL_VEL
+                    ball.vy = BALL_VEL * (1 if random.choice([True, False]) else -1)
+                    has_just_missed = False
+                elif ball.x > WINDOW_WIDTH:
+                    score[0] += 1
+                    ball.x = (WINDOW_WIDTH - BALL_DIAMETER) / 2
+                    ball.y = (WINDOW_HEIGHT - BALL_DIAMETER) / 2
+                    ball.vx = -BALL_VEL
+                    ball.vy = BALL_VEL * (1 if random.choice([True, False]) else -1)
+                    has_just_missed = False
+
+                # Check for game over
+                if score[0] >= WINNING_SCORE or score[1] >= WINNING_SCORE:
+                    game_state = "GAME_OVER"
+
+                physics_time -= physics_step
+
+                physics_time -= physics_step
+
+        elif game_state == "PRACTICE_MODE":
+            # Call the practice_mode function
+            result = practice_mode(conn, window, screen, clock, fullscreen, scale_factor, fullscreen_offset, bg_with_static)
+            # Unpack the result
+            game_state, fullscreen, scale_factor, fullscreen_offset = result
+            # Continue the main loop with the updated game_state and variables
+            continue
+
+        # Drawing
+        if game_state == "MAIN_MENU":
+            menu_option_rects = draw_menu(window, bg_with_static, menu_font, menu_options)
+        elif game_state != "GAME_OVER" and game_state != "PRACTICE_MODE":
+            interpolation = physics_time / physics_step
+            draw_game(
+                window, bg_with_static, (player1, player2), ball, score,
+                display_instructions, game_state, countdown_timer, ball_surface, interpolation
+            )
+        elif game_state == "GAME_OVER":
+            draw_game_over_screen(window, bg_with_static, score)
+
+        # Handle fullscreen scaling
+        if fullscreen:
+            scaled_surface = pygame.transform.scale(
+                window,
+                (int(WINDOW_WIDTH * scale_factor), int(WINDOW_HEIGHT * scale_factor))
+            )
+            screen.fill(BLACK)
+            screen.blit(scaled_surface, fullscreen_offset)
+        else:
+            screen.blit(window, (0, 0))
+
+        pygame.display.flip()
+
+if __name__ == "__main__":
+    main()
