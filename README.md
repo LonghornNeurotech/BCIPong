@@ -134,10 +134,6 @@ The fine-tuning process allows the machine learning model to adapt to your speci
 ```
 ├── README.md
 ├── __init__.py
-├── __pycache__
-│   ├── pygame_brain_pong.cpython-312.pyc
-│   ├── streamer.cpython-39.pyc
-│   └── utils.cpython-39.pyc
 ├── assets
 │   └── Picture2.png
 ├── data
@@ -146,11 +142,9 @@ The fine-tuning process allows the machine learning model to adapt to your speci
 │   └── dataREADME.md
 ├── data_streaming
 │   ├── __init__.py
-│   ├── __pycache__
 │   └── stream.py
 ├── game
 │   ├── __init__.py
-│   ├── __pycache__
 │   ├── bci_input.py
 │   ├── config.py
 │   ├── entities.py
@@ -163,19 +157,16 @@ The fine-tuning process allows the machine learning model to adapt to your speci
 ├── model
 │   ├── CapsNet.py
 │   ├── __init__.py
-│   ├── __pycache__
 │   ├── generate_weights.py
 │   ├── load_model.py
 │   ├── modelREADME.md
 │   └── utils.py
 ├── online_training
-│   ├── __pycache__
 │   ├── loss.py
 │   ├── store_data.py
 │   └── train.py
 ├── preprocessing
 │   ├── __init__.py
-│   ├── __pycache__
 │   ├── preprocess.py
 │   └── preprocessingREADME.md
 ├── run.py
