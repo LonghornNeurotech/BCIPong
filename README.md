@@ -131,7 +131,7 @@ The fine-tuning process allows the machine learning model to adapt to your speci
 
 
 ## Project Structure
-
+```
 ├── README.md
 ├── __init__.py
 ├── __pycache__
@@ -183,7 +183,7 @@ The fine-tuning process allows the machine learning model to adapt to your speci
 ├── tree.md
 ├── utils.py
 └── weights
-
+```
 
 ### License
 
