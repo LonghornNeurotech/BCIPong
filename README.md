@@ -2,31 +2,31 @@ BCI Pong Game Documentation
 
 Table of Contents
 
-	•	Introduction
-	•	Features
-	•	Prerequisites
-	•	Installation
-	•	Running the Game
-	•	Game Modes
-	•	Play Game (Human vs AI)
-	•	Fine-tune Model (Practice Mode)
-	•	Controls
-	•	Fine-tuning the Model
-	•	Overview
-	•	Process
-	•	Project Structure
-	•	Troubleshooting
-	•	Contributing
-	•	License
+    *	Introduction
+    *	Features
+    *	Prerequisites
+    *	Installation
+    *	Running the Game
+    *	Game Modes
+    *	Play Game (Human vs AI)
+    *	Fine-tune Model (Practice Mode)
+    *	Controls
+    *	Fine-tuning the Model
+    *	Overview
+    *	Process
+    *	Project Structure
+    *	Troubleshooting
+    *	Contributing
+    *	License
 
 ### Introduction
 
 BCI Pong Game is a Brain-Computer Interface (BCI) application that allows users to play the classic Pong game using neural signals. The game integrates real-time EEG data streaming, machine learning for prediction, and an interactive Pygame interface.
 
 This application is designed to:
-	•	Provide an interactive platform for BCI experiments.
-	•	Allow users to fine-tune the machine learning model for better accuracy.
-	•	Demonstrate real-time data streaming and processing.
+    *	Provide an interactive platform for BCI experiments.
+    *	Allow users to fine-tune the machine learning model for better accuracy.
+    *	Demonstrate real-time data streaming and processing.
 
 ### Features
 
