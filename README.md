@@ -1,6 +1,6 @@
-BCI Pong Game Documentation
+# BCI Pong Game Documentation
 
-Table of Contents
+### Table of Contents
 
 * [Introduction](#introduction)
 * [Features](#features)
@@ -24,7 +24,7 @@ BCI Pong Game is a Brain-Computer Interface (BCI) application that allows users 
 This application is designed to:
 *	Provide a platform for BCI controlled pong.
 *	Provide users ability to fine-tune their ML model for the Pong environment.
-*	Provide a framework for data collection.
+*	Provide a framework for data collection. (Please see [Data Collection Documentation](data_collection/dataREADME.md))
 
 ### Features
 
@@ -50,7 +50,7 @@ The game requires several Python packages:
 
 You can install these packages using the requirements.txt file provided.
 
-Installation
+### Installation
 
 1.	Clone the Repository
 
@@ -72,62 +72,33 @@ conda activate BCIPong
 pip install -r requirements.txt
 ```
 
-4. Running the Game
+### General Instructions
 
-Start the game by running the run.py script:
+1. Acquire an EEG Headset
 
-```bash 
-python run.py
-```
+*   This project was tested with the OpenBCI Cyton-Daisy 16 channel EEG headset.
+*   Other headsets from g.tec, Emotiv, etc, can be adapted to be used in this project
+
+2. Data Collection
+
+*   In order to train the machine learning data must be collected. 
+*   We provide a comprehensive description on this process in [Data Collection Documentation](data_collection/dataREADME.md)
+
+3. Model training
+
+*   Train the machine learning model with the data collected.
+*   We provide documentation in [Machine Learning Model Documentation](model/modelREADME.md)
+
+4. Fine-Tune
+
+*   Due to intra-subject variability we recommend fine-tuning each time before playing
+*   We provide documentation in [Pong Game Documentation](game/gameREADME.md)
+
+5. Play
+
+*   We provide documentation in [Pong Game Documentation](game/gameREADME.md)
 
 Note: The game uses a synthetic board by default (bf.BoardIds.SYNTHETIC_BOARD.value). If you have a real EEG device, adjust the board_id and serial_port accordingly in run.py. CURRENTLY, THIS GAME IS ONLY SET UP FOR OPENBCI HARDWARE. Contributions are welcome for compatability with other devices.
-
-
-## Game Modes
-
-Upon launching the game, you’ll be presented with a main menu with three options:
-	1.	Play Game
-	2.	Fine-tune Model
-	3.	Exit
-
-You can navigate the menu using the UP/DOWN arrow keys or by hovering and clicking with the mouse.
-
-### Play Game
-
-*   Objective: Play Pong against another opponent using EEG-based controls.
-*   Controls: Use your neural signals to move the paddle up or down.
-
-### Fine-tune Model (Practice Mode)
-
-*   Objective: Improve the machine learning model in the BCIPong environment.
-*   Process: Imagine squeezing left or right hand (without moving) to move the paddle in the direction indicated by on-screen prompts.
-*   It is recommended to fine tune the model each time before playing due to intra-subject variability. If you would like to learn more about Intra-Subject Variability we recommend reading this [paper](https://www.frontiersin.org/journals/computational-neuroscience/articles/10.3389/fncom.2019.00087/full).
-
-### Controls
-
-*   Toggle Fullscreen: Press F to toggle fullscreen mode.
-*   Pause/Resume: Press P to pause or resume the game.
-*   Exit to Main Menu: Press ESC during gameplay to return to the main menu.
-*   Start Practice Mode: In the main menu, select Fine-tune Model.
-
-## Fine-tuning the Model
-
-### Overview
-
-The fine-tuning process allows the machine learning model to adapt to your specific neural signals, improving the accuracy of in-game controls.
-
-### Process
-1.	Focus Period:
-    *   A + sign appears on the screen. Maintain focus on the +.
-2.	Direction Prompt:
-    *   An arrow (up or down) appears, imagine squeezing left or right hand (without actually moving)
-3.	Trial Phase:
-    *   continue imagining squeezing left or right hand
-    *   The paddle will start moving based on the model’s predictions.
-4.	Rest Phase:
-    *   Rest phase of random duration
-5.	Feedback Loop:
-    *   The model receives feedback on its predictions and adjusts accordingly.
 
 
 ## Project Structure
