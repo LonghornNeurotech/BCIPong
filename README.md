@@ -133,13 +133,21 @@ The fine-tuning process allows the machine learning model to adapt to your speci
 ## Project Structure
 
 BCI-Pong-Game/
+
 ├── assets/
+
 │   └── Picture2.png  # Background image
+
 ├── data_streaming/
+
 │   ├── __init__.py
+
 │   └── stream.py  # Data streaming logic
+
 ├── game/
+
 │   ├── __init__.py
+
 │   ├── config.py  # Game configuration constants
 │   ├── entities.py  # Game entities (Paddle, Ball)
 │   ├── input_handler.py  # Input handling logic
