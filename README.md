@@ -2,22 +2,22 @@ BCI Pong Game Documentation
 
 Table of Contents
 
-    *	Introduction
-    *	Features
-    *	Prerequisites
-    *	Installation
-    *	Running the Game
-    *	Game Modes
-    *	Play Game (Human vs AI)
-    *	Fine-tune Model (Practice Mode)
-    *	Controls
-    *	Fine-tuning the Model
-    *	Overview
-    *	Process
-    *	Project Structure
-    *	Troubleshooting
-    *	Contributing
-    *	License
+* Introduction
+* Features
+* Prerequisites
+* Installation
+* Running the Game
+* Game Modes
+* Play Game (Human vs AI)
+* Fine-tune Model (Practice Mode)
+* Controls
+* Fine-tuning the Model
+* Overview
+* Process
+* Project Structure
+* Troubleshooting
+* Contributing
+* License
 
 ### Introduction
 
