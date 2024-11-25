@@ -151,7 +151,7 @@ The data collection procedure involves guiding a subject through a series of mot
 ### Contact Information
 
 For any questions or support, please contact:
-	•	Email: n.feldt@utexas.edu
+*   Email: n.feldt@utexas.edu
 
-Contrabution is encouraged and welcome!
+Contribution is encouraged and welcome!
 
